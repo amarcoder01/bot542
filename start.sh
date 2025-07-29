@@ -3,14 +3,17 @@
 # Start script for Render deployment
 echo "Starting application..."
 
-# Add Python user bin to PATH
-export PATH="$HOME/.local/bin:$PATH"
+# Activate virtual environment
+echo "Activating virtual environment..."
+source /opt/render/project/src/venv/bin/activate
+
+# Add virtual environment bin to PATH
+export PATH="/opt/render/project/src/venv/bin:$PATH"
 
 # Verify gunicorn is available
 if ! command -v gunicorn &> /dev/null; then
-    echo "Gunicorn not found in PATH. Trying to install..."
-    pip install gunicorn>=21.2.0
-    export PATH="$HOME/.local/bin:$PATH"
+    echo "Gunicorn not found in virtual environment. Installing..."
+    pip install gunicorn==21.2.0
 fi
 
 # Show gunicorn location and version

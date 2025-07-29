@@ -5,8 +5,8 @@ services:
     buildpack: python
     pythonVersion: "3.11.0"
     plan: starter
-    buildCommand: "chmod +x build.sh && ./build.sh"
-    startCommand: "chmod +x start.sh && ./start.sh"
+    buildCommand: "pip install --user -r requirements.txt"
+    startCommand: "python -m gunicorn main:create_app --config gunicorn_config.py"
     envVars:
       - key: TELEGRAM_API_TOKEN
         sync: false
