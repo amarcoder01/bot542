@@ -97,15 +97,45 @@ async def patched_portfolio_command(handler, update: Update, context: ContextTyp
     try:
         user_id = update.effective_user.id
         
-        # Use fallback portfolio service
-        if hasattr(handler, 'portfolio_service'):
-            portfolio_service = handler.portfolio_service
-        else:
-            from service_wrappers import FallbackPortfolioService
-            portfolio_service = FallbackPortfolioService()
-            handler.portfolio_service = portfolio_service
+        # Get trades from the trade service (where they were stored)
+        trades = []
+        if hasattr(handler, 'trade_service') and hasattr(handler.trade_service, 'list_trades'):
+            # TradeService from deploy folder
+            trades = await handler.trade_service.list_trades(user_id)
+        elif hasattr(handler, 'portfolio_service') and hasattr(handler.portfolio_service, 'get_trades'):
+            # FallbackPortfolioService
+            trades = await handler.portfolio_service.get_trades(user_id)
         
-        portfolio = await portfolio_service.get_portfolio(user_id)
+        # Build portfolio from trades
+        holdings = {}
+        for trade in trades:
+            symbol = trade['symbol']
+            quantity = trade['quantity']
+            price = trade['price']
+            trade_type = trade.get('type') or trade.get('action', 'unknown')
+            
+            if symbol not in holdings:
+                holdings[symbol] = {'quantity': 0, 'avg_price': 0, 'total_cost': 0}
+            
+            if trade_type == 'buy':
+                # Update average price
+                total_cost = holdings[symbol]['total_cost'] + (quantity * price)
+                holdings[symbol]['quantity'] += quantity
+                if holdings[symbol]['quantity'] > 0:
+                    holdings[symbol]['avg_price'] = total_cost / holdings[symbol]['quantity']
+                    holdings[symbol]['total_cost'] = total_cost
+            else:  # sell
+                holdings[symbol]['quantity'] -= quantity
+                if holdings[symbol]['quantity'] > 0:
+                    holdings[symbol]['total_cost'] = holdings[symbol]['quantity'] * holdings[symbol]['avg_price']
+                else:
+                    # Remove if quantity is 0 or negative
+                    del holdings[symbol]
+        
+        portfolio = {
+            'holdings': holdings,
+            'trades': trades
+        }
         
         if not portfolio['holdings']:
             response = """💼 **Your Portfolio**
@@ -143,8 +173,9 @@ Start tracking trades with:
             if portfolio['trades']:
                 response += "\n\n📊 **Recent Trades:**\n"
                 for trade in portfolio['trades'][-3:]:  # Last 3 trades
-                    trade_emoji = '🟢' if trade['type'] == 'buy' else '🔴'
-                    response += f"{trade_emoji} {trade['type'].upper()} {trade['quantity']} {trade['symbol']} @ ${trade['price']:.2f}\n"
+                    trade_type = trade.get('type') or trade.get('action', 'unknown')
+                    trade_emoji = '🟢' if trade_type == 'buy' else '🔴'
+                    response += f"{trade_emoji} {trade_type.upper()} {trade['quantity']} {trade['symbol']} @ ${trade['price']:.2f}\n"
         
         await update.message.reply_text(response, parse_mode='Markdown')
         
