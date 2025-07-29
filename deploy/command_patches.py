@@ -237,15 +237,19 @@ async def patched_trades_command(handler, update: Update, context: ContextTypes.
     try:
         user_id = update.effective_user.id
         
-        # Use fallback portfolio service
-        if hasattr(handler, 'portfolio_service'):
-            portfolio_service = handler.portfolio_service
+        # Use trade service if available (matches /trade command)
+        if hasattr(handler, 'trade_service') and hasattr(handler.trade_service, 'list_trades'):
+            # TradeService from deploy folder
+            trades = await handler.trade_service.list_trades(user_id)
+        elif hasattr(handler, 'portfolio_service') and hasattr(handler.portfolio_service, 'get_trades'):
+            # FallbackPortfolioService
+            trades = await handler.portfolio_service.get_trades(user_id)
         else:
+            # Create fallback service
             from service_wrappers import FallbackPortfolioService
             portfolio_service = FallbackPortfolioService()
             handler.portfolio_service = portfolio_service
-        
-        trades = await portfolio_service.get_trades(user_id)
+            trades = await portfolio_service.get_trades(user_id)
         
         if not trades:
             response = """📊 **Trade History**
@@ -259,11 +263,23 @@ Start tracking with:
             
             # Show last 10 trades
             for trade in trades[-10:][::-1]:  # Reverse to show newest first
-                trade_emoji = '🟢' if trade['type'] == 'buy' else '🔴'
-                timestamp = trade['timestamp'].split('T')[0]  # Just date
+                # Handle different field names between services
+                trade_type = trade.get('type') or trade.get('action', 'unknown')
+                trade_emoji = '🟢' if trade_type == 'buy' else '🔴'
+                
+                # Handle different timestamp field names
+                timestamp_field = trade.get('timestamp') or trade.get('executed_at', '')
+                if isinstance(timestamp_field, str):
+                    timestamp = timestamp_field.split('T')[0]  # Just date
+                else:
+                    # Handle datetime objects
+                    timestamp = str(timestamp_field).split(' ')[0]
+                
+                # Calculate total if not present
+                total = trade.get('total', trade['quantity'] * trade['price'])
                 
                 response += f"{trade_emoji} **#{trade['id']}** - {timestamp}\n"
-                response += f"  {trade['type'].upper()} {trade['quantity']} {trade['symbol']} @ ${trade['price']:.2f} = ${trade['total']:,.2f}\n\n"
+                response += f"  {trade_type.upper()} {trade['quantity']} {trade['symbol']} @ ${trade['price']:.2f} = ${total:,.2f}\n\n"
             
             response += f"_Showing last {min(10, len(trades))} of {len(trades)} total trades_"
         
