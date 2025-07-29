@@ -9,6 +9,9 @@ logger = logging.getLogger('CommandPatches')
 
 async def patched_watchlist_command(handler, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Patched watchlist command that works without database"""
+    logger.info(f"[DEBUG] Patched watchlist command called for user {update.effective_user.id if update.effective_user else 'unknown'}")
+    logger.info(f"[DEBUG] Command args: {context.args}")
+    
     try:
         user_id = update.effective_user.id
         
@@ -646,6 +649,7 @@ def patch_trading_commands(handler):
     
     # Create wrapper functions
     async def watchlist_wrapper(update, context):
+        logger.info(f"[DEBUG] Watchlist wrapper called with args: {context.args if context else 'no context'}")
         await patched_watchlist_command(handler, update, context)
     
     async def portfolio_wrapper(update, context):
