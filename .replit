@@ -14,15 +14,15 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "TradeAI Integrated Bot"
+args = "TradeMaster AI Bot"
 
 [[workflows.workflow]]
-name = "TradeAI Integrated Bot"
+name = "TradeMaster AI Bot"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python integrated_bot.py"
+args = "python main.py"
 waitForPort = 5000
 
 [[ports]]

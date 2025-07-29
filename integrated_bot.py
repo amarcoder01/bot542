@@ -1,32 +1,34 @@
 #!/usr/bin/env python3
 """
-TradeAI Integrated Bot - Simplified version that works without complex dependencies
-Integrates features from deploy folder while handling missing dependencies gracefully
+TradeMaster AI Bot - Full Integration
+Uses the actual telegram_handler.py from deploy folder
 """
 import os
 import sys
 import asyncio
 import logging
-import time
-import json
-from typing import Optional, Dict, List
 from pathlib import Path
-from aiohttp import web
-from datetime import datetime
+
+# Add deploy directory to Python path for imports
+deploy_dir = Path(__file__).parent / 'deploy'
+if deploy_dir.exists():
+    sys.path.insert(0, str(deploy_dir))
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger('TradeAI')
+logger = logging.getLogger('TradeMasterAI')
 
-# Import Telegram components
-from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
-
-# Simple implementations for essential services when full services aren't available
-class SimpleMarketService:
+# Import the actual TelegramHandler from deploy folder
+try:
+    from telegram_handler import TelegramHandler
+    from bot_ui import TradingBotUI
+    logger.info("✅ Successfully imported TelegramHandler")
+except ImportError as e:
+    logger.error(f"Failed to import TelegramHandler: {e}")
+    sys.exit(1)
     """Simplified market data service"""
     async def get_stock_price(self, symbol: str, user_id: int = None) -> Dict:
         """Get simulated stock price data"""
