@@ -1,0 +1,35 @@
+# Minimal requirements for TradeMaster AI Bot deployment
+# Core dependencies only - no heavy ML libraries
+
+# Telegram bot
+python-telegram-bot==21.3
+telegram==0.0.1
+
+# Async web server
+aiohttp==3.9.5
+
+# OpenAI for AI features
+openai==1.35.13
+
+# Database (optional, using fallback for now)
+sqlalchemy==2.0.31
+asyncpg==0.29.0
+
+# Essential utilities
+python-dotenv==1.0.1
+requests==2.32.3
+pytz==2024.1
+pydantic==2.8.2
+structlog==24.2.0
+
+# Market data
+yfinance==0.2.40
+
+# Caching
+cachetools==5.4.0
+
+# Security
+cryptography==41.0.7
+
+# Metrics (optional)
+prometheus-client==0.20.0
