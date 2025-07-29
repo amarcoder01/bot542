@@ -14,29 +14,16 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "TradeAI Bot"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Advanced TradeAI"
+args = "WorkingBot"
 
 [[workflows.workflow]]
-name = "TradeAI Bot"
+name = "WorkingBot"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python simple_telegram_bot.py"
+args = "python working_telegram_bot.py"
 waitForPort = 8080
-
-[[workflows.workflow]]
-name = "Advanced TradeAI"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd deploy && python advanced_bot.py"
-waitForPort = 5000
 
 [[ports]]
 localPort = 5000
