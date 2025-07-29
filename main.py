@@ -57,7 +57,25 @@ async def main():
         
         # Create and run the handler
         handler = TelegramHandler()
-        logger.info("✅ TradeMaster AI Bot starting...")
+        
+        # Inject fallback services for missing dependencies
+        from service_wrappers import inject_fallback_services
+        handler = inject_fallback_services(handler)
+        
+        # Add missing services that aren't in the original handler
+        from service_wrappers import FallbackWatchlistService, FallbackPortfolioService
+        if not hasattr(handler, 'watchlist_service'):
+            handler.watchlist_service = FallbackWatchlistService()
+        if not hasattr(handler, 'portfolio_service'):
+            handler.portfolio_service = FallbackPortfolioService()
+        if not hasattr(handler, 'trade_service'):
+            handler.trade_service = handler.portfolio_service  # Use portfolio service for trades
+        
+        # Patch trading commands to work with fallback services
+        from command_patches import patch_trading_commands
+        handler = patch_trading_commands(handler)
+        
+        logger.info("✅ TradeMaster AI Bot starting with fallback services...")
         
         # Run the bot in a task
         bot_task = asyncio.create_task(handler.run())
