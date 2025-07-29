@@ -26,23 +26,124 @@ async def patched_watchlist_command(handler, update: Update, context: ContextTyp
             symbols = await watchlist_service.get_user_watchlist(user_id)
             
             if not symbols:
-                response = "📋 **Your Watchlist**\n\n*Your watchlist is empty.*\n\nAdd stocks with: `/watchlist add AAPL`"
+                response = """📋 **WATCHLIST DASHBOARD**
+
+*Your watchlist is empty.*
+
+Start tracking your favorite stocks:
+`/watchlist add AAPL`
+
+Popular stocks to watch:
+• AAPL - Apple Inc.
+• MSFT - Microsoft Corp.
+• GOOGL - Alphabet Inc.
+• TSLA - Tesla Inc.
+• NVDA - NVIDIA Corp."""
             else:
-                response = "📋 **Your Watchlist**\n\n"
+                response = "📋 **WATCHLIST DASHBOARD**\n"
+                response += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                
+                # Collect data for all symbols
+                stock_data = []
+                total_up = 0
+                total_down = 0
+                total_flat = 0
                 
                 # Get price data for each symbol
                 for symbol in symbols:
                     try:
                         price_data = await handler.market_service.get_stock_price(symbol, user_id)
-                        price = price_data.get('price', 0)
-                        change = price_data.get('change_percent', 0)
-                        change_emoji = '📈' if change >= 0 else '📉'
                         
-                        response += f"{change_emoji} **{symbol}**: ${price:.2f} ({change:+.2f}%)\n"
-                    except:
-                        response += f"• **{symbol}**: Price unavailable\n"
+                        data = {
+                            'symbol': symbol,
+                            'company_name': price_data.get('company_name', symbol),
+                            'price': price_data.get('price', 0),
+                            'change': price_data.get('change', 0),
+                            'change_percent': price_data.get('change_percent', 0),
+                            'volume': price_data.get('volume', 0),
+                            'day_high': price_data.get('day_high', 0),
+                            'day_low': price_data.get('day_low', 0),
+                            'market_cap': price_data.get('market_cap', 'N/A')
+                        }
+                        stock_data.append(data)
+                        
+                        # Count performance
+                        if data['change_percent'] > 0:
+                            total_up += 1
+                        elif data['change_percent'] < 0:
+                            total_down += 1
+                        else:
+                            total_flat += 1
+                    except Exception as e:
+                        logger.error(f"Error fetching data for {symbol}: {e}")
+                        stock_data.append({
+                            'symbol': symbol,
+                            'company_name': symbol,
+                            'price': 0,
+                            'change_percent': 0,
+                            'error': True
+                        })
                 
-                response += f"\n_Total: {len(symbols)} stocks_"
+                # Market Overview
+                response += "**📊 MARKET OVERVIEW**\n"
+                response += f"• Total Stocks: {len(symbols)}\n"
+                response += f"• Up: {total_up} 📈 | Down: {total_down} 📉 | Flat: {total_flat} ➖\n"
+                
+                # Calculate average performance
+                if stock_data:
+                    avg_change = sum(s['change_percent'] for s in stock_data if 'error' not in s) / len(stock_data)
+                    response += f"• Avg Change: {avg_change:+.2f}%\n"
+                
+                response += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                
+                # Sort by performance (best to worst)
+                stock_data.sort(key=lambda x: x.get('change_percent', -999), reverse=True)
+                
+                response += "**💎 YOUR WATCHLIST**\n\n"
+                
+                # Display each stock with enhanced formatting
+                for i, stock in enumerate(stock_data, 1):
+                    if 'error' in stock:
+                        response += f"{i}. **{stock['symbol']}** - _Data unavailable_\n\n"
+                        continue
+                    
+                    # Performance indicator
+                    if stock['change_percent'] > 0:
+                        perf_icon = "🟢"
+                    elif stock['change_percent'] < 0:
+                        perf_icon = "🔴"
+                    else:
+                        perf_icon = "⚪"
+                    
+                    # Main stock info
+                    response += f"{perf_icon} **{stock['symbol']}** - {stock['company_name'][:25]}\n"
+                    response += f"├ Price: ${stock['price']:.2f} ({stock['change_percent']:+.2f}%)\n"
+                    response += f"├ Day Range: ${stock['day_low']:.2f} - ${stock['day_high']:.2f}\n"
+                    
+                    # Format volume
+                    if stock['volume'] > 1000000:
+                        volume_str = f"{stock['volume'] / 1000000:.1f}M"
+                    else:
+                        volume_str = f"{stock['volume']:,}"
+                    response += f"├ Volume: {volume_str}"
+                    
+                    # Add market cap if available
+                    if stock['market_cap'] != 'N/A':
+                        response += f" | MCap: {stock['market_cap']}"
+                    
+                    response += "\n"
+                    
+                    # Add separator between stocks except last one
+                    if i < len(stock_data):
+                        response += "└────────────────────\n"
+                
+                # Quick actions footer
+                response += "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                response += "**⚡ QUICK ACTIONS**\n"
+                response += "• Add: `/watchlist add [SYMBOL]`\n"
+                response += "• Remove: `/watchlist remove [SYMBOL]`\n"
+                response += "• Price: `/price [SYMBOL]`\n"
+                response += "• Analysis: `/analyze [SYMBOL]`"
             
             await update.message.reply_text(response, parse_mode='Markdown')
             
@@ -52,13 +153,24 @@ async def patched_watchlist_command(handler, update: Update, context: ContextTyp
             success = await watchlist_service.add_to_watchlist(user_id, symbol)
             
             if success:
-                await update.message.reply_text(
-                    f"✅ **{symbol}** added to your watchlist!\n\nView with: `/watchlist`",
-                    parse_mode='Markdown'
-                )
+                # Get current price info for the added stock
+                try:
+                    price_data = await handler.market_service.get_stock_price(symbol, user_id)
+                    price = price_data.get('price', 0)
+                    change = price_data.get('change_percent', 0)
+                    company = price_data.get('company_name', symbol)
+                    
+                    response = f"✅ **{symbol}** added to your watchlist!\n\n"
+                    response += f"**{company}**\n"
+                    response += f"Current Price: ${price:.2f} ({change:+.2f}%)\n\n"
+                    response += f"View full watchlist: `/watchlist`"
+                except:
+                    response = f"✅ **{symbol}** added to your watchlist!\n\nView with: `/watchlist`"
+                
+                await update.message.reply_text(response, parse_mode='Markdown')
             else:
                 await update.message.reply_text(
-                    f"ℹ️ **{symbol}** is already in your watchlist.",
+                    f"ℹ️ **{symbol}** is already in your watchlist.\n\nView all: `/watchlist`",
                     parse_mode='Markdown'
                 )
                 
@@ -68,13 +180,16 @@ async def patched_watchlist_command(handler, update: Update, context: ContextTyp
             success = await watchlist_service.remove_from_watchlist(user_id, symbol)
             
             if success:
-                await update.message.reply_text(
-                    f"✅ **{symbol}** removed from your watchlist.",
-                    parse_mode='Markdown'
-                )
+                # Get remaining count
+                remaining = await watchlist_service.get_user_watchlist(user_id)
+                response = f"✅ **{symbol}** removed from your watchlist.\n\n"
+                response += f"Remaining stocks: {len(remaining)}\n"
+                response += f"View watchlist: `/watchlist`"
+                
+                await update.message.reply_text(response, parse_mode='Markdown')
             else:
                 await update.message.reply_text(
-                    f"❌ **{symbol}** was not in your watchlist.",
+                    f"❌ **{symbol}** was not in your watchlist.\n\nView current watchlist: `/watchlist`",
                     parse_mode='Markdown'
                 )
         else:
