@@ -12,7 +12,7 @@ backlog = 2048
 
 # Worker processes - Reduced for memory optimization on Render
 workers = 1  # Single worker to minimize memory usage
-worker_class = "aiohttp.GunicornWebWorker"
+worker_class = "sync"
 worker_connections = 500  # Reduced connections per worker
 timeout = 60  # Increased timeout for complex operations
 keepalive = 2
