@@ -272,6 +272,9 @@ def patch_trading_commands(handler):
     handler._original_trade = getattr(handler, 'trade_command', None)
     handler._original_trades = getattr(handler, 'trades_command', None)
     handler._original_help_trading = getattr(handler, 'help_trading_command', None)
+    handler._original_help_alerts = getattr(handler, 'help_alerts_command', None)
+    handler._original_help_advanced = getattr(handler, 'help_advanced_command', None)
+    handler._original_help_examples = getattr(handler, 'help_examples_command', None)
     
     # Create wrapper functions
     async def watchlist_wrapper(update, context):
@@ -288,6 +291,17 @@ def patch_trading_commands(handler):
     
     # Simple help_trading wrapper that bypasses potential issues
     async def help_trading_wrapper(update, context):
+        logger.info(f"help_trading_wrapper called by user {update.effective_user.id if update.effective_user else 'unknown'}")
+        
+        # Call the original method if it exists
+        if handler._original_help_trading:
+            try:
+                await handler._original_help_trading(update, context)
+                return
+            except Exception as e:
+                logger.error(f"Original help_trading failed: {e}")
+        
+        # Fallback implementation
         help_message = """📊 **STOCK PRICES, CHARTS & ANALYSIS**
 
 **💹 GET STOCK PRICES:**
@@ -333,7 +347,124 @@ def patch_trading_commands(handler):
             logger.info(f"Trading help command processed for user {update.effective_user.id}")
         except Exception as e:
             logger.error(f"Error sending trading help message: {str(e)}")
-            await update.message.reply_text(help_message)  # Try without markdown
+            # Try without markdown
+            try:
+                await update.message.reply_text(help_message.replace('**', '').replace('`', ''))
+            except Exception as e2:
+                logger.error(f"Failed to send help even without markdown: {e2}")
+    
+    # Help alerts wrapper
+    async def help_alerts_wrapper(update, context):
+        logger.info(f"help_alerts_wrapper called by user {update.effective_user.id if update.effective_user else 'unknown'}")
+        
+        if handler._original_help_alerts:
+            try:
+                await handler._original_help_alerts(update, context)
+                return
+            except Exception as e:
+                logger.error(f"Original help_alerts failed: {e}")
+        
+        help_message = """🚨 **PRICE ALERTS & NOTIFICATIONS**
+
+**⚡ SET PRICE ALERTS:**
+• `/alert AAPL above 150` - Alert when Apple goes above $150
+• `/alert TSLA below 200` - Alert when Tesla drops below $200
+• `/alert NVDA above 500` - Alert when NVIDIA hits $500
+
+**📱 MANAGE YOUR ALERTS:**
+• `/alerts` - See all your active alerts
+• `/remove_alert 1` - Remove alert #1
+
+**💡 HOW ALERTS WORK:**
+• Get notified immediately when price hits
+• 24/7 price monitoring
+• Simple setup - just stock and target price
+• View and remove alerts anytime
+
+🔙 Return to main menu: `/help`"""
+        
+        try:
+            await update.message.reply_text(help_message, parse_mode='Markdown')
+        except Exception as e:
+            await update.message.reply_text(help_message.replace('**', '').replace('`', ''))
+    
+    # Help advanced wrapper
+    async def help_advanced_wrapper(update, context):
+        logger.info(f"help_advanced_wrapper called by user {update.effective_user.id if update.effective_user else 'unknown'}")
+        
+        if handler._original_help_advanced:
+            try:
+                await handler._original_help_advanced(update, context)
+                return
+            except Exception as e:
+                logger.error(f"Original help_advanced failed: {e}")
+        
+        help_message = """🧠 **ADVANCED FEATURES FOR PROS**
+
+**🤖 AI PREDICTIONS:**
+• `/ai_analysis AAPL` - AI predicts stock movements
+• `/signals TSLA` - Get buy/sell signals
+• `/deep_analysis NVDA` - Deep dive with AI
+• `/advanced SPY` - Advanced S&P 500 analysis
+
+**📈 STRATEGY TESTING:**
+• `/backtest AAPL` - Test strategy performance
+• `/indicators AAPL` - Technical indicators (RSI, MACD)
+• `/risk GOOGL` - Check risk levels
+
+**💡 WHAT THESE DO:**
+• AI Analysis - Predicts stock movements
+• Backtesting - Test strategies on past data
+• Risk Analysis - Shows potential losses
+• Indicators - Technical trading signals
+
+🔙 Return to main menu: `/help`"""
+        
+        try:
+            await update.message.reply_text(help_message, parse_mode='Markdown')
+        except Exception as e:
+            await update.message.reply_text(help_message.replace('**', '').replace('`', ''))
+    
+    # Help examples wrapper
+    async def help_examples_wrapper(update, context):
+        logger.info(f"help_examples_wrapper called by user {update.effective_user.id if update.effective_user else 'unknown'}")
+        
+        if handler._original_help_examples:
+            try:
+                await handler._original_help_examples(update, context)
+                return
+            except Exception as e:
+                logger.error(f"Original help_examples failed: {e}")
+        
+        help_message = """💡 **USAGE EXAMPLES & TIPS**
+
+**🗣️ NATURAL CONVERSATION:**
+• "What's happening with Tesla stock?"
+• "Should I buy Apple now?"
+• "How's the tech sector performing?"
+
+**📊 COMMAND EXAMPLES:**
+• `/price AAPL` → Get Apple's current price
+• `/chart TSLA 1d` → Tesla daily chart
+• `/analyze NVDA` → AI analysis of NVIDIA
+• `/alert SPY above 450` → S&P 500 alert
+
+**🇺🇸 STOCK COVERAGE:**
+• Large-cap: AAPL, MSFT, GOOGL, AMZN, TSLA
+• ETFs: SPY, QQQ, IWM, VTI, VOO
+• Special: BRK.A, BRK.B
+
+**🚀 GETTING STARTED:**
+1. Try `/price AAPL` for your first command
+2. Ask me a natural question about stocks
+3. Set up price alerts for your watchlist
+
+🔙 Back to main help: `/help`"""
+        
+        try:
+            await update.message.reply_text(help_message, parse_mode='Markdown')
+        except Exception as e:
+            await update.message.reply_text(help_message.replace('**', '').replace('`', ''))
     
     # Replace handlers
     handler.watchlist_command = watchlist_wrapper
@@ -341,6 +472,9 @@ def patch_trading_commands(handler):
     handler.trade_command = trade_wrapper
     handler.trades_command = trades_wrapper
     handler.help_trading_command = help_trading_wrapper
+    handler.help_alerts_command = help_alerts_wrapper
+    handler.help_advanced_command = help_advanced_wrapper
+    handler.help_examples_command = help_examples_wrapper
     
     logger.info("Trading commands patched for fallback services")
     return handler

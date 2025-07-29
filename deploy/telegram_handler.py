@@ -880,7 +880,7 @@ Try `/price AAPL` or just ask: "How is Apple performing today?"
 **⚡ QUICK TIPS:**
 • You can set multiple alerts for the same stock
 • Alerts work for stocks, ETFs, and crypto
-• round numbeUse exact prices (like 150.50) or rs (like 150)
+• Use exact prices (like 150.50) or round numbers (like 150)
 • Check `/alerts` regularly to manage your notifications
 • Remove old alerts you don't need anymore
 
