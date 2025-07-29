@@ -1,1 +1,1 @@
-web: python main.py
+web: python -m gunicorn main:create_app --config gunicorn_config.py
