@@ -138,44 +138,180 @@ async def patched_portfolio_command(handler, update: Update, context: ContextTyp
         }
         
         if not portfolio['holdings']:
-            response = """💼 **Your Portfolio**
+            response = """💼 **PORTFOLIO DASHBOARD**
 
-*Your portfolio is empty.*
+*Your portfolio is currently empty.*
 
-Start tracking trades with:
-`/trade buy AAPL 10 150`"""
+Start building your portfolio:
+`/trade buy AAPL 10 150`
+
+Available commands:
+• `/watchlist` - Manage watchlist
+• `/trades` - View trade history
+• `/alert` - Set price alerts"""
         else:
-            response = "💼 **Your Portfolio**\n\n"
+            response = "💼 **PORTFOLIO DASHBOARD**\n"
+            response += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
             
-            total_value = 0
+            # Calculate portfolio metrics
+            total_cost_basis = 0
+            total_current_value = 0
+            holdings_data = []
+            
+            # First pass: gather all data
             for symbol, holding in portfolio['holdings'].items():
                 quantity = holding['quantity']
                 avg_price = holding['avg_price']
-                position_value = quantity * avg_price
-                total_value += position_value
+                cost_basis = quantity * avg_price
+                total_cost_basis += cost_basis
                 
                 # Try to get current price
                 try:
                     price_data = await handler.market_service.get_stock_price(symbol, user_id)
                     current_price = price_data.get('price', avg_price)
                     current_value = quantity * current_price
-                    pnl = current_value - position_value
-                    pnl_percent = (pnl / position_value * 100) if position_value > 0 else 0
-                    
-                    response += f"**{symbol}**: {quantity} shares @ ${avg_price:.2f}\n"
-                    response += f"  💰 Current: ${current_value:.2f} ({pnl_percent:+.2f}%)\n\n"
+                    daily_change = price_data.get('change_percent', 0)
+                    company_name = price_data.get('company_name', symbol)
                 except:
-                    response += f"**{symbol}**: {quantity} shares @ ${avg_price:.2f}\n\n"
+                    current_price = avg_price
+                    current_value = cost_basis
+                    daily_change = 0
+                    company_name = symbol
+                
+                total_current_value += current_value
+                
+                holdings_data.append({
+                    'symbol': symbol,
+                    'company_name': company_name,
+                    'quantity': quantity,
+                    'avg_price': avg_price,
+                    'current_price': current_price,
+                    'cost_basis': cost_basis,
+                    'current_value': current_value,
+                    'daily_change': daily_change,
+                    'unrealized_pnl': current_value - cost_basis,
+                    'unrealized_pnl_pct': ((current_value - cost_basis) / cost_basis * 100) if cost_basis > 0 else 0
+                })
             
-            response += f"**Total Portfolio Value**: ${total_value:,.2f}"
+            # Portfolio Summary
+            total_pnl = total_current_value - total_cost_basis
+            total_pnl_pct = (total_pnl / total_cost_basis * 100) if total_cost_basis > 0 else 0
             
-            # Show recent trades
+            response += "**📈 PORTFOLIO SUMMARY**\n"
+            response += f"• Total Value: ${total_current_value:,.2f}\n"
+            response += f"• Cost Basis: ${total_cost_basis:,.2f}\n"
+            response += f"• Total P&L: ${total_pnl:+,.2f} ({total_pnl_pct:+.2f}%)\n"
+            response += f"• Holdings: {len(holdings_data)} positions\n"
+            response += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            
+            # Holdings Details
+            response += "**💎 HOLDINGS BREAKDOWN**\n\n"
+            
+            # Sort by current value (largest positions first)
+            holdings_data.sort(key=lambda x: x['current_value'], reverse=True)
+            
+            for holding in holdings_data:
+                # Calculate allocation percentage
+                allocation = (holding['current_value'] / total_current_value * 100) if total_current_value > 0 else 0
+                
+                # Position header
+                response += f"**{holding['symbol']}** - {holding['company_name'][:20]}\n"
+                response += f"├ Position: {holding['quantity']} shares @ ${holding['avg_price']:.2f}\n"
+                response += f"├ Current: ${holding['current_price']:.2f} ({holding['daily_change']:+.2f}% today)\n"
+                response += f"├ Value: ${holding['current_value']:,.2f} ({allocation:.1f}% of portfolio)\n"
+                response += f"└ P&L: ${holding['unrealized_pnl']:+,.2f} ({holding['unrealized_pnl_pct']:+.2f}%)\n\n"
+            
+            # Performance Metrics
+            response += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            response += "**📊 PERFORMANCE METRICS**\n\n"
+            
+            # Calculate detailed performance metrics
+            winners = [h for h in holdings_data if h['unrealized_pnl'] > 0]
+            losers = [h for h in holdings_data if h['unrealized_pnl'] < 0]
+            flat = [h for h in holdings_data if h['unrealized_pnl'] == 0]
+            
+            # Win/Loss Statistics
+            total_positions = len(holdings_data)
+            win_rate = (len(winners) / total_positions * 100) if total_positions > 0 else 0
+            
+            response += "**Win/Loss Analysis:**\n"
+            response += f"• Win Rate: {win_rate:.1f}%\n"
+            response += f"• Winners: {len(winners)} | Losers: {len(losers)} | Flat: {len(flat)}\n"
+            
+            # Calculate average gains and losses
+            if winners:
+                avg_win_pct = sum(w['unrealized_pnl_pct'] for w in winners) / len(winners)
+                avg_win_dollar = sum(w['unrealized_pnl'] for w in winners) / len(winners)
+                response += f"• Avg Winner: +${avg_win_dollar:,.2f} (+{avg_win_pct:.2f}%)\n"
+            
+            if losers:
+                avg_loss_pct = sum(l['unrealized_pnl_pct'] for l in losers) / len(losers)
+                avg_loss_dollar = sum(l['unrealized_pnl'] for l in losers) / len(losers)
+                response += f"• Avg Loser: ${avg_loss_dollar:,.2f} ({avg_loss_pct:.2f}%)\n"
+            
+            # Risk/Reward Ratio
+            if winners and losers:
+                avg_win_pct = sum(w['unrealized_pnl_pct'] for w in winners) / len(winners)
+                avg_loss_pct = abs(sum(l['unrealized_pnl_pct'] for l in losers) / len(losers))
+                risk_reward = avg_win_pct / avg_loss_pct if avg_loss_pct > 0 else float('inf')
+                response += f"• Risk/Reward Ratio: {risk_reward:.2f}:1\n"
+            
+            response += "\n**Position Performance:**\n"
+            
+            # Best and worst performers with more detail
+            if holdings_data:
+                sorted_by_pnl = sorted(holdings_data, key=lambda x: x['unrealized_pnl_pct'], reverse=True)
+                
+                # Top 3 performers (or all if less than 3)
+                top_count = min(3, len(sorted_by_pnl))
+                if top_count > 0:
+                    response += "• Top Performers:\n"
+                    for i in range(top_count):
+                        h = sorted_by_pnl[i]
+                        if h['unrealized_pnl'] >= 0:
+                            response += f"  {i+1}. {h['symbol']}: +${h['unrealized_pnl']:,.2f} ({h['unrealized_pnl_pct']:+.2f}%)\n"
+                
+                # Bottom 3 performers (if any losers)
+                bottom_performers = [h for h in sorted_by_pnl if h['unrealized_pnl'] < 0]
+                if bottom_performers:
+                    response += "• Bottom Performers:\n"
+                    for i, h in enumerate(bottom_performers[-3:]):
+                        response += f"  {i+1}. {h['symbol']}: ${h['unrealized_pnl']:,.2f} ({h['unrealized_pnl_pct']:.2f}%)\n"
+            
+            # Portfolio Concentration Risk
+            response += "\n**Risk Analysis:**\n"
+            if holdings_data:
+                # Find largest position by value
+                largest = max(holdings_data, key=lambda x: x['current_value'])
+                concentration = (largest['current_value'] / total_current_value * 100)
+                response += f"• Largest Position: {largest['symbol']} ({concentration:.1f}% of portfolio)\n"
+                
+                # Calculate portfolio volatility approximation
+                pnl_percentages = [h['unrealized_pnl_pct'] for h in holdings_data]
+                if len(pnl_percentages) > 1:
+                    import statistics
+                    try:
+                        volatility = statistics.stdev(pnl_percentages)
+                        response += f"• Position Volatility: {volatility:.2f}%\n"
+                    except:
+                        pass
+            
+            # Recent Activity
             if portfolio['trades']:
-                response += "\n\n📊 **Recent Trades:**\n"
-                for trade in portfolio['trades'][-3:]:  # Last 3 trades
+                response += "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                response += "**🕐 RECENT ACTIVITY**\n"
+                for trade in portfolio['trades'][-5:][::-1]:  # Last 5 trades, newest first
                     trade_type = trade.get('type') or trade.get('action', 'unknown')
                     trade_emoji = '🟢' if trade_type == 'buy' else '🔴'
-                    response += f"{trade_emoji} {trade_type.upper()} {trade['quantity']} {trade['symbol']} @ ${trade['price']:.2f}\n"
+                    
+                    # Format timestamp
+                    timestamp_field = trade.get('timestamp') or trade.get('executed_at', '')
+                    if isinstance(timestamp_field, str) and 'T' in timestamp_field:
+                        date_part = timestamp_field.split('T')[0]
+                    else:
+                        date_part = str(timestamp_field).split(' ')[0]
+                    
+                    response += f"{trade_emoji} {date_part}: {trade_type.upper()} {trade['quantity']} {trade['symbol']} @ ${trade['price']:.2f}\n"
         
         await update.message.reply_text(response, parse_mode='Markdown')
         
@@ -290,10 +426,37 @@ async def patched_trades_command(handler, update: Update, context: ContextTypes.
 Start tracking with:
 `/trade buy AAPL 10 150`"""
         else:
-            response = "📊 **Trade History**\n\n"
+            response = "📊 **TRADE EXECUTION HISTORY**\n"
+            response += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
             
-            # Show last 10 trades
-            for trade in trades[-10:][::-1]:  # Reverse to show newest first
+            # Calculate summary statistics
+            total_volume = 0
+            buy_count = 0
+            sell_count = 0
+            symbols_traded = set()
+            
+            for trade in trades:
+                trade_type = trade.get('type') or trade.get('action', 'unknown')
+                total_volume += trade['quantity'] * trade['price']
+                symbols_traded.add(trade['symbol'])
+                if trade_type == 'buy':
+                    buy_count += 1
+                else:
+                    sell_count += 1
+            
+            # Summary section
+            response += f"**📈 SUMMARY STATISTICS**\n"
+            response += f"• Total Trades: {len(trades)}\n"
+            response += f"• Buy Orders: {buy_count} | Sell Orders: {sell_count}\n"
+            response += f"• Total Volume: ${total_volume:,.2f}\n"
+            response += f"• Unique Symbols: {len(symbols_traded)}\n"
+            response += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            
+            # Detailed trades section
+            response += "**📋 RECENT EXECUTIONS**\n\n"
+            
+            # Show last 15 trades with enhanced formatting
+            for i, trade in enumerate(trades[-15:][::-1], 1):  # Reverse to show newest first
                 # Handle different field names between services
                 trade_type = trade.get('type') or trade.get('action', 'unknown')
                 trade_emoji = '🟢' if trade_type == 'buy' else '🔴'
@@ -301,18 +464,37 @@ Start tracking with:
                 # Handle different timestamp field names
                 timestamp_field = trade.get('timestamp') or trade.get('executed_at', '')
                 if isinstance(timestamp_field, str):
-                    timestamp = timestamp_field.split('T')[0]  # Just date
+                    # Parse ISO format to readable format
+                    try:
+                        from datetime import datetime
+                        dt = datetime.fromisoformat(timestamp_field.replace('Z', '+00:00'))
+                        date_str = dt.strftime('%Y-%m-%d')
+                        time_str = dt.strftime('%H:%M:%S')
+                    except:
+                        date_str = timestamp_field.split('T')[0]
+                        time_str = timestamp_field.split('T')[1][:8] if 'T' in timestamp_field else ''
                 else:
                     # Handle datetime objects
-                    timestamp = str(timestamp_field).split(' ')[0]
+                    date_str = str(timestamp_field).split(' ')[0]
+                    time_str = str(timestamp_field).split(' ')[1].split('.')[0] if ' ' in str(timestamp_field) else ''
                 
                 # Calculate total if not present
                 total = trade.get('total', trade['quantity'] * trade['price'])
                 
-                response += f"{trade_emoji} **#{trade['id']}** - {timestamp}\n"
-                response += f"  {trade_type.upper()} {trade['quantity']} {trade['symbol']} @ ${trade['price']:.2f} = ${total:,.2f}\n\n"
+                # Format trade entry with better structure
+                response += f"{trade_emoji} **Trade #{trade['id']}**\n"
+                response += f"   📅 {date_str}"
+                if time_str:
+                    response += f" at {time_str}"
+                response += f"\n"
+                response += f"   📊 {trade_type.upper()}: {trade['quantity']} × {trade['symbol']} @ ${trade['price']:.2f}\n"
+                response += f"   💵 Total Value: ${total:,.2f}\n"
+                
+                # Add separator between trades except last one
+                if i < min(15, len(trades)):
+                    response += "   ─────────────────────\n"
             
-            response += f"_Showing last {min(10, len(trades))} of {len(trades)} total trades_"
+            response += f"\n_Showing {min(15, len(trades))} most recent trades out of {len(trades)} total_"
         
         await update.message.reply_text(response, parse_mode='Markdown')
         
