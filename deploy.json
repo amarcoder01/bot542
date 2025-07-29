@@ -1,0 +1,10 @@
+{
+  "name": "TradeMaster AI Bot",
+  "type": "background",
+  "run_command": "python main.py",
+  "environment_variables": {
+    "TELEGRAM_API_TOKEN": "Required - Your Telegram Bot Token",
+    "OPENAI_API_KEY": "Required - Your OpenAI API Key for AI features"
+  },
+  "description": "Advanced AI-powered Telegram trading bot"
+}
