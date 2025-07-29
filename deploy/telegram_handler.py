@@ -3365,17 +3365,17 @@ Do NOT fetch any actual stock data - just provide a conversational response guid
         app.add_handler(CommandHandler("contact", secure_handler(require_auth=False, min_access_level=AccessLevel.GUEST)(self.contact_command)))
         
         # Detailed help command handlers (public access)
-        app.add_handler(CommandHandler("help_trading", secure_handler(require_auth=False, min_access_level=AccessLevel.GUEST)(self.help_trading_command)))
-        app.add_handler(CommandHandler("help_alerts", secure_handler(require_auth=False, min_access_level=AccessLevel.GUEST)(self.help_alerts_command)))
-        app.add_handler(CommandHandler("help_advanced", secure_handler(require_auth=False, min_access_level=AccessLevel.GUEST)(self.help_advanced_command)))
-        app.add_handler(CommandHandler("help_examples", secure_handler(require_auth=False, min_access_level=AccessLevel.GUEST)(self.help_examples_command)))
+        app.add_handler(CommandHandler("help_trading", self.help_trading_command))
+        app.add_handler(CommandHandler("help_alerts", self.help_alerts_command))
+        app.add_handler(CommandHandler("help_advanced", self.help_advanced_command))
+        app.add_handler(CommandHandler("help_examples", self.help_examples_command))
 
         
         # Trading command handlers (user access required) - Simple, user-friendly names
-        app.add_handler(CommandHandler("price", secure_handler(min_access_level=AccessLevel.USER)(self.price_command)))
-        app.add_handler(CommandHandler("chart", secure_handler(min_access_level=AccessLevel.USER)(self.chart_command)))
-        app.add_handler(CommandHandler("analyze", secure_handler(min_access_level=AccessLevel.USER)(self.analyze_command)))
-        app.add_handler(CommandHandler("signals", secure_handler(min_access_level=AccessLevel.USER)(self.smart_signal_command)))
+        app.add_handler(CommandHandler("price", self.price_command))
+        app.add_handler(CommandHandler("chart", self.chart_command))
+        app.add_handler(CommandHandler("analyze", self.analyze_command))
+        app.add_handler(CommandHandler("signals", self.smart_signal_command))
 
         
         # Advanced analysis commands (premium access for resource-intensive operations) - Simplified names
@@ -3385,15 +3385,15 @@ Do NOT fetch any actual stock data - just provide a conversational response guid
         app.add_handler(CommandHandler("ai_signals", secure_handler(min_access_level=AccessLevel.PREMIUM)(self.ai_signals_command)))
         
         # Alert command handlers (user access)
-        app.add_handler(CommandHandler("alert", secure_handler(min_access_level=AccessLevel.USER)(self.process_alert_input)))
-        app.add_handler(CommandHandler("alerts", secure_handler(min_access_level=AccessLevel.USER)(self.alerts_command)))
-        app.add_handler(CommandHandler("remove_alert", secure_handler(min_access_level=AccessLevel.USER)(self.remove_alert_command)))
+        app.add_handler(CommandHandler("alert", self.process_alert_input))
+        app.add_handler(CommandHandler("alerts", self.alerts_command))
+        app.add_handler(CommandHandler("remove_alert", self.remove_alert_command))
         
         # Trade command handlers (user access)
-        app.add_handler(CommandHandler("trade", secure_handler(min_access_level=AccessLevel.USER)(self.trade_command)))
-        app.add_handler(CommandHandler("trades", secure_handler(min_access_level=AccessLevel.USER)(self.trades_command)))
-        app.add_handler(CommandHandler("portfolio", secure_handler(min_access_level=AccessLevel.USER)(self.portfolio_command)))
-        app.add_handler(CommandHandler("delete_trade", secure_handler(min_access_level=AccessLevel.USER)(self.delete_trade_command)))
+        app.add_handler(CommandHandler("trade", self.trade_command))
+        app.add_handler(CommandHandler("trades", self.trades_command))
+        app.add_handler(CommandHandler("portfolio", self.portfolio_command))
+        app.add_handler(CommandHandler("delete_trade", self.delete_trade_command))
         
         # Advanced trading command handlers (premium access) - User-friendly names
         app.add_handler(CommandHandler("advanced", secure_handler(min_access_level=AccessLevel.PREMIUM)(self.advanced_analysis_command)))
@@ -3403,7 +3403,7 @@ Do NOT fetch any actual stock data - just provide a conversational response guid
         # New AI-enhanced commands
         app.add_handler(CommandHandler("strategy", secure_handler(min_access_level=AccessLevel.USER)(self.strategy_command)))
         app.add_handler(CommandHandler("predict", secure_handler(min_access_level=AccessLevel.USER)(self.predict_command)))
-        app.add_handler(CommandHandler("watchlist", secure_handler(min_access_level=AccessLevel.USER)(self.watchlist_command)))
+        app.add_handler(CommandHandler("watchlist", self.watchlist_command))
         
 
         
