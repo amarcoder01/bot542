@@ -225,76 +225,76 @@ Available commands:
             response += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             response += "**📊 PERFORMANCE METRICS**\n\n"
             
-            # Calculate detailed performance metrics
+            # Market Performance Overview
+            response += "**Market Performance:**\n"
+            
+            # Calculate daily performance if we have current prices
+            daily_gain = sum(h['current_value'] * (h['daily_change'] / 100) for h in holdings_data)
+            response += f"• Today's Change: ${daily_gain:+,.2f}\n"
+            
+            # Show portfolio efficiency
+            if total_cost_basis > 0:
+                portfolio_efficiency = (total_current_value / total_cost_basis - 1) * 100
+                response += f"• Portfolio Return: {portfolio_efficiency:+.2f}%\n"
+            
+            # Average position size
+            avg_position_size = total_current_value / len(holdings_data) if holdings_data else 0
+            response += f"• Avg Position Size: ${avg_position_size:,.2f}\n"
+            
+            # Count profitable vs unprofitable positions
             winners = [h for h in holdings_data if h['unrealized_pnl'] > 0]
             losers = [h for h in holdings_data if h['unrealized_pnl'] < 0]
-            flat = [h for h in holdings_data if h['unrealized_pnl'] == 0]
             
-            # Win/Loss Statistics
-            total_positions = len(holdings_data)
-            win_rate = (len(winners) / total_positions * 100) if total_positions > 0 else 0
+            response += f"• Profitable Positions: {len(winners)} of {len(holdings_data)}\n"
             
-            response += "**Win/Loss Analysis:**\n"
-            response += f"• Win Rate: {win_rate:.1f}%\n"
-            response += f"• Winners: {len(winners)} | Losers: {len(losers)} | Flat: {len(flat)}\n"
+            response += "\n**Individual Stock Performance:**\n"
             
-            # Calculate average gains and losses
-            if winners:
-                avg_win_pct = sum(w['unrealized_pnl_pct'] for w in winners) / len(winners)
-                avg_win_dollar = sum(w['unrealized_pnl'] for w in winners) / len(winners)
-                response += f"• Avg Winner: +${avg_win_dollar:,.2f} (+{avg_win_pct:.2f}%)\n"
-            
-            if losers:
-                avg_loss_pct = sum(l['unrealized_pnl_pct'] for l in losers) / len(losers)
-                avg_loss_dollar = sum(l['unrealized_pnl'] for l in losers) / len(losers)
-                response += f"• Avg Loser: ${avg_loss_dollar:,.2f} ({avg_loss_pct:.2f}%)\n"
-            
-            # Risk/Reward Ratio
-            if winners and losers:
-                avg_win_pct = sum(w['unrealized_pnl_pct'] for w in winners) / len(winners)
-                avg_loss_pct = abs(sum(l['unrealized_pnl_pct'] for l in losers) / len(losers))
-                risk_reward = avg_win_pct / avg_loss_pct if avg_loss_pct > 0 else float('inf')
-                response += f"• Risk/Reward Ratio: {risk_reward:.2f}:1\n"
-            
-            response += "\n**Position Performance:**\n"
-            
-            # Best and worst performers with more detail
+            # Show all positions sorted by performance
             if holdings_data:
                 sorted_by_pnl = sorted(holdings_data, key=lambda x: x['unrealized_pnl_pct'], reverse=True)
                 
-                # Top 3 performers (or all if less than 3)
-                top_count = min(3, len(sorted_by_pnl))
-                if top_count > 0:
-                    response += "• Top Performers:\n"
-                    for i in range(top_count):
-                        h = sorted_by_pnl[i]
-                        if h['unrealized_pnl'] >= 0:
-                            response += f"  {i+1}. {h['symbol']}: +${h['unrealized_pnl']:,.2f} ({h['unrealized_pnl_pct']:+.2f}%)\n"
-                
-                # Bottom 3 performers (if any losers)
-                bottom_performers = [h for h in sorted_by_pnl if h['unrealized_pnl'] < 0]
-                if bottom_performers:
-                    response += "• Bottom Performers:\n"
-                    for i, h in enumerate(bottom_performers[-3:]):
-                        response += f"  {i+1}. {h['symbol']}: ${h['unrealized_pnl']:,.2f} ({h['unrealized_pnl_pct']:.2f}%)\n"
+                for h in sorted_by_pnl:
+                    # Performance indicator
+                    if h['unrealized_pnl'] > 0:
+                        perf_icon = "📈"
+                    elif h['unrealized_pnl'] < 0:
+                        perf_icon = "📉"
+                    else:
+                        perf_icon = "➖"
+                    
+                    response += f"{perf_icon} **{h['symbol']}**: ${h['unrealized_pnl']:+,.2f} ({h['unrealized_pnl_pct']:+.2f}%)\n"
+                    response += f"   Today: {h['daily_change']:+.2f}% | Position: {h['quantity']} shares\n"
             
-            # Portfolio Concentration Risk
-            response += "\n**Risk Analysis:**\n"
+            # Portfolio Analysis
+            response += "\n**Portfolio Analysis:**\n"
             if holdings_data:
-                # Find largest position by value
-                largest = max(holdings_data, key=lambda x: x['current_value'])
-                concentration = (largest['current_value'] / total_current_value * 100)
-                response += f"• Largest Position: {largest['symbol']} ({concentration:.1f}% of portfolio)\n"
+                # Diversification analysis
+                response += f"• Diversification: {len(holdings_data)} different stocks\n"
                 
-                # Calculate portfolio volatility approximation
-                pnl_percentages = [h['unrealized_pnl_pct'] for h in holdings_data]
-                if len(pnl_percentages) > 1:
-                    import statistics
-                    try:
-                        volatility = statistics.stdev(pnl_percentages)
-                        response += f"• Position Volatility: {volatility:.2f}%\n"
-                    except:
-                        pass
+                # Find largest and smallest positions
+                largest = max(holdings_data, key=lambda x: x['current_value'])
+                smallest = min(holdings_data, key=lambda x: x['current_value'])
+                concentration = (largest['current_value'] / total_current_value * 100)
+                
+                response += f"• Largest Position: {largest['symbol']} ({concentration:.1f}% of portfolio)\n"
+                response += f"• Smallest Position: {smallest['symbol']} ({(smallest['current_value'] / total_current_value * 100):.1f}% of portfolio)\n"
+                
+                # Show position balance
+                position_values = [h['current_value'] for h in holdings_data]
+                max_position = max(position_values)
+                min_position = min(position_values)
+                position_ratio = max_position / min_position if min_position > 0 else float('inf')
+                
+                if position_ratio > 10:
+                    response += f"• Balance Alert: Largest position is {position_ratio:.1f}x the smallest\n"
+                
+                # Investment efficiency
+                total_gains = sum(h['unrealized_pnl'] for h in holdings_data if h['unrealized_pnl'] > 0)
+                total_losses = abs(sum(h['unrealized_pnl'] for h in holdings_data if h['unrealized_pnl'] < 0))
+                
+                if total_losses > 0:
+                    gain_loss_ratio = total_gains / total_losses
+                    response += f"• Gain/Loss Ratio: {gain_loss_ratio:.2f}:1\n"
             
             # Recent Activity
             if portfolio['trades']:
