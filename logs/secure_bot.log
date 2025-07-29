@@ -1,0 +1,6 @@
+2025-07-29 10:26:14,965 - secure_bot - INFO - info:191 - Security middleware initialized
+2025-07-29 10:26:15,048 - secure_bot - INFO - info:191 - Job queue disabled - alert monitoring not available via scheduled jobs
+2025-07-29 10:26:15,048 - secure_bot - INFO - info:191 - All trading command handlers setup complete with security middleware
+2025-07-29 10:30:36,770 - secure_bot - INFO - info:191 - Security middleware initialized
+2025-07-29 10:30:36,823 - secure_bot - INFO - info:191 - Job queue disabled - alert monitoring not available via scheduled jobs
+2025-07-29 10:30:36,823 - secure_bot - INFO - info:191 - All trading command handlers setup complete with security middleware
