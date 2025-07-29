@@ -7,8 +7,9 @@ python-dotenv==1.0.0
 # Web server and async support
 aiohttp>=3.9.0
 httpx>=0.25.0
-gunicorn>=21.2.0
+gunicorn==21.2.0
 uvicorn[standard]>=0.24.0
+wsgiref>=3.2.0
 
 # Data processing
 pandas>=2.0.0
