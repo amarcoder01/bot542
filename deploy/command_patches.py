@@ -199,10 +199,19 @@ async def patched_trade_command(handler, update: Update, context: ContextTypes.D
             trade_service = FallbackPortfolioService()
             handler.trade_service = trade_service
         
-        # Record the trade
-        result = await trade_service.record_trade(user_id, action, symbol, quantity, price)
+        # Record the trade (handle different service types)
+        if hasattr(trade_service, 'record_trade'):
+            # FallbackPortfolioService
+            result = await trade_service.record_trade(user_id, action, symbol, quantity, price)
+        elif hasattr(trade_service, 'create_trade'):
+            # TradeService from deploy folder
+            result = await trade_service.create_trade(user_id, symbol, action, quantity, price)
+        else:
+            logger.error(f"Trade service has neither record_trade nor create_trade method")
+            await update.message.reply_text("❌ Trade service configuration error. Please contact support.")
+            return
         
-        if result['success']:
+        if result.get('success', False):
             total_value = quantity * price
             trade_emoji = '🟢' if action == 'buy' else '🔴'
             

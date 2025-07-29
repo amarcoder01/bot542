@@ -28,6 +28,8 @@ TradeAI Companion is an advanced AI-powered Telegram trading bot that combines m
   - QlibService for trading signals
 - ✅ Bot running on port 5000 with health monitoring
 - ✅ Using actual codebase from deploy folder as requested
+- ✅ Fixed help commands not responding due to handler setup issue
+- ✅ Fixed /trade command error by handling both TradeService and FallbackPortfolioService APIs
 
 ## User Preferences
 
