@@ -1,0 +1,30 @@
+modules = ["python-3.11"]
+
+[nix]
+channel = "stable-25_05"
+packages = ["cairo", "cargo", "ffmpeg-full", "freetype", "ghostscript", "glibcLocales", "gobject-introspection", "gtk3", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "pkg-config", "postgresql", "qhull", "rustc", "tcl", "tk", "zlib"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Telegram Bot"
+
+[[workflows.workflow]]
+name = "Telegram Bot"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python simple_telegram_bot.py"
+waitForPort = 8080
+
+[[ports]]
+localPort = 8080
+externalPort = 80
