@@ -230,7 +230,7 @@ class TelegramHandler:
             self.application = builder.build()
             
             # Setup all handlers
-            self._setup_handlers()
+            self.setup_handlers()
             
             # Initialize and start the application
             await self.application.initialize()
@@ -798,6 +798,7 @@ Try `/price AAPL` or just ask: "How is Apple performing today?"
         """
         Handle /help_trading command - detailed trading commands
         """
+        logger.info(f"help_trading_command called by user {update.effective_user.id if update.effective_user else 'unknown'}")
         help_message = """
 📊 **STOCK PRICES, CHARTS & ANALYSIS**
 
@@ -851,6 +852,7 @@ Try `/price AAPL` or just ask: "How is Apple performing today?"
         """
         Handle /help_alerts command - detailed alert commands
         """
+        logger.info(f"help_alerts_command called by user {update.effective_user.id if update.effective_user else 'unknown'}")
         help_message = """
 🚨 **PRICE ALERTS & NOTIFICATIONS**
 
@@ -910,6 +912,7 @@ Try `/price AAPL` or just ask: "How is Apple performing today?"
         """
         Handle /help_advanced command - advanced AI features
         """
+        logger.info(f"help_advanced_command called by user {update.effective_user.id if update.effective_user else 'unknown'}")
         help_message = """
 🧠 **ADVANCED FEATURES FOR PROS**
 
@@ -966,6 +969,7 @@ Try `/price AAPL` or just ask: "How is Apple performing today?"
         """
         Handle /help_examples command - usage examples and tips
         """
+        logger.info(f"help_examples_command called by user {update.effective_user.id if update.effective_user else 'unknown'}")
         help_message = """
 💡 **USAGE EXAMPLES & TIPS**
 
