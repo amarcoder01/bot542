@@ -108,14 +108,25 @@ async def patched_portfolio_command(handler, update: Update, context: ContextTyp
         
         # Build portfolio from trades
         holdings = {}
+        
+        # Debug logging
+        logger.info(f"Building portfolio from {len(trades)} trades for user {user_id}")
+        
         for trade in trades:
             symbol = trade['symbol']
             quantity = trade['quantity']
             price = trade['price']
             trade_type = trade.get('type') or trade.get('action', 'unknown')
             
+            # Debug each trade
+            logger.info(f"Processing trade: {trade_type} {quantity} {symbol} @ ${price}")
+            
             if symbol not in holdings:
                 holdings[symbol] = {'quantity': 0, 'avg_price': 0, 'total_cost': 0}
+                # Skip sell trades for stocks not in holdings
+                if trade_type == 'sell':
+                    logger.info(f"Skipping sell trade for {symbol} - not in holdings")
+                    continue
             
             if trade_type == 'buy':
                 # Update average price
@@ -128,9 +139,13 @@ async def patched_portfolio_command(handler, update: Update, context: ContextTyp
                 holdings[symbol]['quantity'] -= quantity
                 if holdings[symbol]['quantity'] > 0:
                     holdings[symbol]['total_cost'] = holdings[symbol]['quantity'] * holdings[symbol]['avg_price']
-                else:
-                    # Remove if quantity is 0 or negative
+                elif holdings[symbol]['quantity'] <= 0:
+                    # Only remove if quantity is 0 or negative
+                    logger.info(f"Removing {symbol} from holdings (quantity: {holdings[symbol]['quantity']})")
                     del holdings[symbol]
+        
+        # Log final holdings
+        logger.info(f"Final holdings: {list(holdings.keys())}")
         
         portfolio = {
             'holdings': holdings,
