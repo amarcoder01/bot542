@@ -1,0 +1,7 @@
+# Deployment trigger file for Render
+# Last updated: 2025-07-29 08:30:00
+# Changes: CRITICAL FIX - Removed blocking infinite loop in webhook mode that was causing premature shutdown
+# - Modified telegram_handler.py to not run blocking loop in webhook mode
+# - Enhanced webhook handler with detailed logging
+# - Fixed main.py to await bot initialization instead of creating background task
+# This should resolve the Gunicorn TERM signal and premature shutdown issue
